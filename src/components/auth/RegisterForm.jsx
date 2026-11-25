@@ -1,7 +1,8 @@
 import { useState } from "react";
+import { Link } from "react-router";
 import { apiRequest } from "../../api/apiClient";
 
-function RegisterForm({ onSwitchToLogin }) {
+function RegisterForm() {
 
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
@@ -94,9 +95,7 @@ function RegisterForm({ onSwitchToLogin }) {
 
       <p>
         Already have an account?{" "}
-        <button type="button" onClick={onSwitchToLogin}>
-          Login here
-        </button>
+        <Link to="/login">Login here</Link>
       </p>
     </div>
   );

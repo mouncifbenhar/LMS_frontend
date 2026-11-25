@@ -1,7 +1,8 @@
 import { useState } from "react";
+import { Link } from "react-router";
 import { apiRequest } from "../../api/apiClient";
 
-function LoginForm({ onLoginSuccess, onSwitchToRegister }) {
+function LoginForm({ onLoginSuccess }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -60,9 +61,7 @@ function LoginForm({ onLoginSuccess, onSwitchToRegister }) {
 
       <p>
         Don't have an account?{" "}
-        <button type="button" onClick={onSwitchToRegister}>
-          Register here
-        </button>
+        <Link to="/register">Register here</Link>
       </p>
     </div>
   );

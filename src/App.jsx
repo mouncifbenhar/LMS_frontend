@@ -1,5 +1,6 @@
 // src/App.jsx
 import { useState } from "react";
+import { Routes, Route, Navigate, useNavigate } from "react-router";
 import LoginForm from "./components/auth/LoginForm";
 import RegisterForm from "./components/auth/RegisterForm";
 import ProtectedView from "./components/common/ProtectedView";
@@ -10,10 +11,11 @@ import { getAllCourses } from "./services/courseService";
 function App() {
   const [session, setSession] = useState(null);
   const [globalError, setGlobalError] = useState("");
-  const [authPage, setAuthPage] = useState("login");
   const [courses, setCourses] = useState([]);
   const [loadingCourses, setLoadingCourses] = useState(false);
   const [coursesError, setCoursesError] = useState("");
+
+  const navigate = useNavigate();
 
   const loadCourses = async (userToken) => {
     setLoadingCourses(true);
@@ -37,6 +39,13 @@ function App() {
     setSession(loginData);
     setGlobalError("");
     loadCourses(loginData.token);
+
+    // Redirect user based on role after login
+    if (loginData.user.role === "admin") {
+      navigate("/admin");
+    } else {
+      navigate("/learner");
+    }
   };
 
   const handleLogout = () => {
@@ -45,8 +54,15 @@ function App() {
     setLoadingCourses(false);
     setCoursesError("");
     setGlobalError("");
-    setAuthPage("login");
+    navigate("/login");
   };
+
+  // Where to send the user by default
+  const defaultRoute = !session
+    ? "/login"
+    : session.user.role === "admin"
+      ? "/admin"
+      : "/learner";
 
   return (
     <div>
@@ -58,47 +74,78 @@ function App() {
         </div>
       )}
 
-      
-      {!session && authPage === "login" && (
-        <LoginForm
-          onLoginSuccess={handleLoginSuccess}
-          onSwitchToRegister={() => setAuthPage("register")}
+      <Routes>
+        {/* Login Page */}
+        <Route
+          path="/login"
+          element={
+            session ? (
+              <Navigate to={defaultRoute} />
+            ) : (
+              <LoginForm onLoginSuccess={handleLoginSuccess} />
+            )
+          }
         />
-      )}
 
-      {!session && authPage === "register" && (
-        <RegisterForm
-          onSwitchToLogin={() => setAuthPage("login")}
+        {/* Register Page */}
+        <Route
+          path="/register"
+          element={
+            session ? <Navigate to={defaultRoute} /> : <RegisterForm />
+          }
         />
-      )}
 
-      
-      {session && session.user.role === "admin" && (
-        <ProtectedView userRole={session.user.role} allowedRole="admin">
-          <>
-            <AdminLayout session={session} onLogout={handleLogout} />
-            <CoursesList
-              courses={courses}
-              isLoading={loadingCourses}
-              error={coursesError}
-              onRefresh={() => loadCourses(session.token)}
-            />
-          </>
-        </ProtectedView>
-      )}
+        {/* Admin Page */}
+        <Route
+          path="/admin"
+          element={
+            !session ? (
+              <Navigate to="/login" />
+            ) : (
+              <ProtectedView userRole={session.user.role} allowedRole="admin">
+                <>
+                  <AdminLayout session={session} onLogout={handleLogout} />
+                  <CoursesList
+                    courses={courses}
+                    isLoading={loadingCourses}
+                    error={coursesError}
+                    onRefresh={() => loadCourses(session.token)}
+                  />
+                </>
+              </ProtectedView>
+            )
+          }
+        />
 
-      {session && session.user.role === "apprenant" && (
-        <div>
-          <h1>Welcome Learner: {session.user.fullName}</h1>
-          <button onClick={handleLogout}>Logout</button>
-          <CoursesList
-            courses={courses}
-            isLoading={loadingCourses}
-            error={coursesError}
-            onRefresh={() => loadCourses(session.token)}
-          />
-        </div>
-      )}
+        {/* Learner Page */}
+        <Route
+          path="/learner"
+          element={
+            !session ? (
+              <Navigate to="/login" />
+            ) : (
+              <ProtectedView
+                userRole={session.user.role}
+                allowedRole="apprenant"
+              >
+                <div>
+                  <h1>Welcome Learner: {session.user.fullName}</h1>
+                  <button onClick={handleLogout}>Logout</button>
+                  <CoursesList
+                    courses={courses}
+                    isLoading={loadingCourses}
+                    error={coursesError}
+                    onRefresh={() => loadCourses(session.token)}
+                  />
+                </div>
+              </ProtectedView>
+            )
+          }
+        />
+
+        {/* Any other URL (including "/") redirects to defaultRoute */}
+        <Route path="*" element={<Navigate to={defaultRoute} />} />
+      </Routes>
     </div>
   );
 }
